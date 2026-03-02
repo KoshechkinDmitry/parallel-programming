@@ -1,7 +1,6 @@
 ﻿#include <iostream>
 #include <vector>
 #include <fstream>
-#include <thread>
 #include <chrono>
 
 using namespace std;
@@ -39,23 +38,6 @@ void writeMatrix(const string& filename, const Matrix& mat) {
     }
 }
 
-// Параллельное умножение части строк
-void multiplyPart(const Matrix& A,
-    const Matrix& B,
-    Matrix& C,
-    int startRow,
-    int endRow,
-    int N) {
-
-    for (int i = startRow; i < endRow; ++i) {
-        for (int j = 0; j < N; ++j) {
-            for (int k = 0; k < N; ++k) {
-                C[i][j] += A[i][k] * B[k][j];
-            }
-        }
-    }
-}
-
 int main() {
     int N1, N2;
 
@@ -70,31 +52,13 @@ int main() {
     int N = N1;
     Matrix C(N, vector<double>(N, 0));
 
-    int threadCount;
-    cout << "Enter number of threads: ";
-    cin >> threadCount;
-    if (threadCount == 0) threadCount = 4;
-
-    vector<thread> threads;
-    int blockSize = N / threadCount;
-
     auto start = chrono::high_resolution_clock::now();
 
-    for (int t = 0; t < threadCount; ++t) {
-        int startRow = t * blockSize;
-        int endRow = (t == threadCount - 1) ? N : startRow + blockSize;
-
-        threads.emplace_back(multiplyPart,
-            cref(A),
-            cref(B),
-            ref(C),
-            startRow,
-            endRow,
-            N);
-    }
-
-    for (auto& th : threads)
-        th.join();
+    // Обычное умножение матриц
+    for (int i = 0; i < N; ++i)
+        for (int j = 0; j < N; ++j)
+            for (int k = 0; k < N; ++k)
+                C[i][j] += A[i][k] * B[k][j];
 
     auto end = chrono::high_resolution_clock::now();
     chrono::duration<double> duration = end - start;
@@ -104,7 +68,6 @@ int main() {
     long long operations = 2LL * N * N * N;
 
     cout << "Matrix size: " << N << "x" << N << endl;
-    cout << "Threads used: " << threadCount << endl;
     cout << "Operations (approx): " << operations << endl;
     cout << "Execution time: " << duration.count() << " seconds" << endl;
 
